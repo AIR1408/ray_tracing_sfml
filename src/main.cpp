@@ -1,6 +1,8 @@
 #include <SFML/Graphics/Image.hpp>
 #include <vector>
 #include <memory>
+#include <fstream>
+#include <iostream>
 
 #include <sphere.h>
 #include <cube.h>
@@ -67,34 +69,59 @@ float3 raytrace(Ray ray, std::shared_ptr<Object> ignored = nullptr){
 	return linalg::max(linalg::min(ray_color, 255), 0);
 }
 
+void readSceneFromFile(std::string file_name){
+	std::ifstream fin(file_name);
+	if (!fin.is_open()){
+		std::cout << "cannot find file" << std::endl;
+		exit(-1);
+	}
+	std::string name;
+	float3 pos, color, norm, up, center;
+	float fv, rad, refl = 0.f;
+	char state = 0;
+	while (fin >> name){
+		if (name == "Camera"){
+			fin >> pos.x >> pos.y >> pos.z >> up.x >> up.y >> up.z >> 
+				center.x >> center.y >> center.z >> fv;
+			cameras.push_back(std::make_shared<Camera>(pos, up, center, M_PI / 2, aspect_ratio));	
+		}
+		else if (name == "Light"){
+			fin >> pos.x >> pos.y >> pos.z >> color.x >> color.y >> color.z;
+			lights.push_back(std::make_shared<Light>(pos, color));
+		}
+		else if (name != "") {
+			fin >> pos.x >> pos.y >> pos.z >> color.x >> color.y >> color.z;
+			if (name == "Sphere"){
+				fin >> rad >> refl;
+				objects.push_back(std::make_shared<Sphere>(color, rad));
+			}
+			else if (name == "Cube"){
+				fin >> rad >> refl;
+				objects.push_back(std::make_shared<Cube>(color, rad));
+			}
+			else if (name == "Plane"){
+				fin >> norm.x >> norm.y >> norm.z >> refl;
+				objects.push_back(std::make_shared<Plane>(color, norm));
+			}
+			else if (name == "Cylinder"){
+				// TODO
+			}
+			else if (name == "Triangle"){
+				// TODO
+			}
+			objects[objects.size() - 1]->applyTransform(linalg::translation_matrix(pos));
+			objects[objects.size() - 1]->setReflectionIntensity(refl);
+		}
+		name = "";
+		pos = float3(0.f);
+	}
+	fin.close();
+}
 
 int main(int argc, char *argv[])
 {
-	cameras.push_back(std::make_shared<Camera>(float3{-1, 3, 3}, float3{0, 1, 0}, float3{0, 2, 0}, fov, aspect_ratio));
 	// cameras.push_back(std::make_shared<Camera>(float3{-2, 5, 0}, float3{0, 1, 0}, float3{0, 0, 0}, fov, aspect_ratio));
-
-	objects.push_back(std::make_shared<Sphere>(float3{200, 0, 0}, 1));
-	objects.push_back(std::make_shared<Sphere>(float3{0, 200, 0}, 1));
-	objects.push_back(std::make_shared<Sphere>(float3{0, 0, 200}, 1));
-	objects.push_back(std::make_shared<Cube>(float3{0, 100, 50}, 0.5));
-	objects.push_back(std::make_shared<Plane>(float3{0, 170, 0}, float3{0.0, 1.0, 0.0}));
-	objects.push_back(std::make_shared<Cylinder>(float3{150, 170, 0}, 0.5, float3{0.0, 0.0, 0.0}, float3{0.0, 5.0, 0.0}));
-	// objects.push_back(std::make_shared<Triangle>(float3{100, 100, 90}, 
-	// 	float3{0.0, 1.0, 0.0}, float3{0.0, 0.0, 0.0}, float3{1.0, 0.0, 0.0}));
-
-	objects[3]->setReflectionIntensity(0.9f);
-	float angle = M_PI_4;
-	objects[3]->applyTransform(linalg::scaling_matrix(float3{3, 3, 1}));
-	objects[3]->applyTransform(linalg::rotation_matrix(linalg::qexp(float4{1, 0, 0, 0} * angle / 2)));
-	objects[0]->applyTransform(linalg::translation_matrix(float3{-2,1,0}));
-	objects[1]->applyTransform(linalg::translation_matrix(float3{0,1,0}));
-	objects[2]->applyTransform(linalg::translation_matrix(float3{2,1,0}));
-	objects[3]->applyTransform(linalg::translation_matrix(float3{0,3.5,0}));
-	objects[4]->applyTransform(linalg::translation_matrix(float3{0,0,0}));
-	objects[5]->applyTransform(linalg::translation_matrix(float3{3,0.5,1}));
-
-	lights.push_back(std::make_shared<Light>(float3{7, 5, 5}, float3{200}));
-	lights.push_back(std::make_shared<Light>(float3{-5, 10, 5}, float3{200}));
+	readSceneFromFile("./scene.txt");
 
 	for (int k = 0; k < cameras.size(); ++k){
 		sf::Image im;
