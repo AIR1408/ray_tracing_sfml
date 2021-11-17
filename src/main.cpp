@@ -2,7 +2,6 @@
 #include <vector>
 #include <memory>
 #include <fstream>
-#include <iostream>
 
 #include <sphere.h>
 #include <cube.h>
@@ -69,27 +68,24 @@ float3 raytrace(Ray ray, std::shared_ptr<Object> ignored = nullptr){
 	return linalg::max(linalg::min(ray_color, 255), 0);
 }
 
-void readSceneFromFile(std::string file_name){
+bool readSceneFromFile(std::string file_name){
 	std::ifstream fin(file_name);
-	if (!fin.is_open()){
-		std::cout << "cannot find file" << std::endl;
-		exit(-1);
-	}
+	if (!fin.is_open())
+		return false;
 	std::string name;
-	float3 pos, color, norm, up, center;
+	float3 pos, color, norm, up, center, point[3];
 	float fv, rad, refl = 0.f;
-	char state = 0;
 	while (fin >> name){
 		if (name == "Camera"){
-			fin >> pos.x >> pos.y >> pos.z >> up.x >> up.y >> up.z >> 
-				center.x >> center.y >> center.z >> fv;
-			cameras.push_back(std::make_shared<Camera>(pos, up, center, M_PI / 2, aspect_ratio));	
+			fin >> pos.x >> pos.y >> pos.z >> up.x >> up.y >> up.z 
+				>> center.x >> center.y >> center.z >> fv;
+			cameras.push_back(std::make_shared<Camera>(pos, up, center, fv * M_PI / 180, aspect_ratio));	
 		}
 		else if (name == "Light"){
 			fin >> pos.x >> pos.y >> pos.z >> color.x >> color.y >> color.z;
 			lights.push_back(std::make_shared<Light>(pos, color));
 		}
-		else if (name != "") {
+		else if (name != "" && name != "#") {
 			fin >> pos.x >> pos.y >> pos.z >> color.x >> color.y >> color.z;
 			if (name == "Sphere"){
 				fin >> rad >> refl;
@@ -104,24 +100,33 @@ void readSceneFromFile(std::string file_name){
 				objects.push_back(std::make_shared<Plane>(color, norm));
 			}
 			else if (name == "Cylinder"){
-				// TODO
+				fin >> rad 
+					>> point[0].x >> point[0].y >> point[0].z
+					>> point[1].x >> point[1].y >> point[1].z;
+				objects.push_back(std::make_shared<Cylinder>(color, rad, point[0], point[1]));
 			}
 			else if (name == "Triangle"){
-				// TODO
+				fin >> point[0].x >> point[0].y >> point[0].z
+					>> point[1].x >> point[1].y >> point[1].z
+					>> point[2].x >> point[2].y >> point[2].z;
+				objects.push_back(std::make_shared<Triangle>(color, point[0], point[1], point[2]));
 			}
 			objects[objects.size() - 1]->applyTransform(linalg::translation_matrix(pos));
 			objects[objects.size() - 1]->setReflectionIntensity(refl);
 		}
+		for (char c = fin.peek(); c != '\n' && c != EOF; fin.get(c));
 		name = "";
 		pos = float3(0.f);
 	}
 	fin.close();
+	return true;
 }
 
 int main(int argc, char *argv[])
 {
 	// cameras.push_back(std::make_shared<Camera>(float3{-2, 5, 0}, float3{0, 1, 0}, float3{0, 0, 0}, fov, aspect_ratio));
-	readSceneFromFile("./scene.txt");
+	if (!readSceneFromFile("./scene.txt"))
+		return 0;
 
 	for (int k = 0; k < cameras.size(); ++k){
 		sf::Image im;
