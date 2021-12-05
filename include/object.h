@@ -27,7 +27,7 @@ protected:
     virtual float calcIntersection(linalg::aliases::float3 ro, linalg::aliases::float3 rd) = 0;
 private:
     void appTransform(Ray &ray, Light &light);
-    float fast_pow(float x, int y) const;
+    float pow2pow(float x, int y) const;
 };
 
 #endif

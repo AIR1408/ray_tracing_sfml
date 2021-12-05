@@ -43,7 +43,6 @@ float3 raytrace(Ray ray, std::shared_ptr<Object> ignored = nullptr){
 	ray.tail = ray.origin + min_rv * ray.direction;
 
 	// Calculation reflected ray color
-	//reflection_intensity = 0.4f;
 	reflection_intensity = near->getReflectionIntensity();
 	if (reflection_intensity > 0){
 		reflection.origin = ray.tail,
@@ -102,13 +101,13 @@ bool readSceneFromFile(std::string file_name){
 			else if (name == "Cylinder"){
 				fin >> rad 
 					>> point[0].x >> point[0].y >> point[0].z
-					>> point[1].x >> point[1].y >> point[1].z;
+					>> point[1].x >> point[1].y >> point[1].z >> refl;
 				objects.push_back(std::make_shared<Cylinder>(color, rad, point[0], point[1]));
 			}
 			else if (name == "Triangle"){
 				fin >> point[0].x >> point[0].y >> point[0].z
 					>> point[1].x >> point[1].y >> point[1].z
-					>> point[2].x >> point[2].y >> point[2].z;
+					>> point[2].x >> point[2].y >> point[2].z >> refl;
 				objects.push_back(std::make_shared<Triangle>(color, point[0], point[1], point[2]));
 			}
 			objects[objects.size() - 1]->applyTransform(linalg::translation_matrix(pos));
@@ -124,20 +123,18 @@ bool readSceneFromFile(std::string file_name){
 
 int main(int argc, char *argv[])
 {
-	// cameras.push_back(std::make_shared<Camera>(float3{-2, 5, 0}, float3{0, 1, 0}, float3{0, 0, 0}, fov, aspect_ratio));
 	if (!readSceneFromFile("./scene.txt"))
 		return 0;
 
 	for (int k = 0; k < cameras.size(); ++k){
 		sf::Image im;
-		// im.create(window_size_x, window_size_y);
-		for (int i = 0; i < window_size_x; ++i)
-			for (int j = 0; j < window_size_y; ++j){
+		for (int j = 0; j < window_size_y; ++j)
+			for (int i = 0; i < window_size_x; ++i){
 				Ray ray = cameras[k]->getRay(2.f * i / window_size_x - 1, 1 - 2.f * j / window_size_y);
 				colors_matrix[i + j * window_size_x] = {byte3{raytrace(ray)}, 255};
-				// im.setPixel(i, j, sf::Color(color.x, color.y, color.z));
 			}
 		im.create(window_size_x, window_size_y, &colors_matrix[0].x);
 		im.saveToFile("camera" + std::to_string(k) + ".png");
 	}
+	return 0;
 }

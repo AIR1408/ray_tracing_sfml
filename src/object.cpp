@@ -22,7 +22,7 @@ linalg::aliases::float3 Object::getPhongColor(Ray ray, Light light){
     float cosA = linalg::dot(ld, normal);
     auto reflect = 2 * normal * cosA - ld,
         diff_color = color * linalg::max(cosA, 0) * light.color / 255,
-        spec_color = light.color * fast_pow(linalg::max(linalg::dot(reflect, -ray.direction), 0), 4);
+        spec_color = light.color * pow2pow(linalg::max(linalg::dot(reflect, -ray.direction), 0), 4);
     return linalg::min(25 + diff_color + spec_color, 255);
 }
 
@@ -46,7 +46,8 @@ linalg::aliases::float3 Object::getNormal() const {
     return normal;
 }
 
-float Object::fast_pow(float x, int y) const {
+// Returns x^(2^y)
+float Object::pow2pow(float x, int y) const {
     for (int i = 0; i < y; ++i)
         x *= x;
     return x;
